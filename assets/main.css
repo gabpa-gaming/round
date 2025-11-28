@@ -97,7 +97,7 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 400;
 }
 
-.playback-controls {
+.common-button {
     margin-top: 32px;
     font-size: 20px;
     color: #aaaaaa;
@@ -124,7 +124,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .content-section {
-    margin-bottom: 32px;
+    margin-top: 32px;
 }
 
 .content-section h2 {
@@ -309,7 +309,7 @@ h1, h2, h3, h4, h5, h6 {
     flex: 1;
 }
 
-.playback-controls {
+.common-button {
     margin-top: 4px;
     display: flex;
     gap: 4px;
@@ -318,27 +318,70 @@ h1, h2, h3, h4, h5, h6 {
     flex-shrink: 0;
 }
 
-.playback-controls button {
+.controls-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    width: 100%;
+}
+
+.right-controls {
+    position: absolute;
+    right: 0;
+    display: flex;
+    gap: 4px;
+}
+
+.right-controls button {
     background-color: #3a3a3a;
     border: 1px solid #555555;
     border-radius: 8px;
-    padding: 12px 24px;
+    padding: 8px 8px;
     color: #e0e0e0;
     font-family: 'Vollkorn', serif;
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
     text-transform: lowercase;
 }
 
-.playback-controls button:hover {
+.right-controls button:hover {
+    border-color: #777777;
+    background-color: #454545;
+    transform: translateY(-2px);
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+.right-controls button:active {
+    transform: translateY(0);
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.common-button button {
+    background-color: #3a3a3a;
+    border: 1px solid #555555;
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: #e0e0e0;
+    font-family: 'Vollkorn', serif;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: lowercase;
+}
+.controls-container .common-button button {
+    font-size: 30px;
+}
+
+.common-button button:hover {
     border-color: #777777;
     background-color: #454545;
     transform: translateY(-2px);
     box-shadow: 0px 4px 8px rgba(0, 0z, 0, 0.4);
 }
 
-.playback-controls button:active {
+.common-button button:active {
     transform: translateY(0);
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.4);
 }

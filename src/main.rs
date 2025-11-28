@@ -14,7 +14,9 @@ pub mod errors;
 pub mod audio_controller;
 pub mod audio_controller_command;
 pub mod context_menu;
-pub mod helpers;
+pub mod playlist;
+pub mod playlist_browser;
+pub mod create_playlist_dialog;
 
 use crate::{app::App, app_context::PlayerContext, audio_controller::AudioController, audio_controller_command::AudioControllerCommand};
 

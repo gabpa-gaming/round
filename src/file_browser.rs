@@ -1,9 +1,14 @@
-use std::{clone, path::{Path, PathBuf}};
+use std::path::{Path, PathBuf};
 
-use audiotags::Tag;
-use dioxus::{core::IntoAttributeValue, html::u::is, prelude::*};
+use dioxus::prelude::*;
 
-use crate::{app_context::{DatabaseContext, PlayerContext}, db::{self, Db, SongView}, player, player_playing_state::PlayerPlayingState};
+use crate::{
+    app_context::{DatabaseContext, PlayerContext},
+    context_menu::{ContextMenuItem, context_menu},
+    create_playlist_dialog::create_playlist_dialog,
+    db::{Db, SongView},
+    playlist_browser::playlist_browser, queue_state::QueueFallbackMode,
+};
 
 pub const RECOGNIZED_FILE_EXTENSIONS: [&str; 5] = ["mp3", "flac", "wav", "aac", "ogg"];
 
@@ -34,6 +39,16 @@ pub struct FileEntry {
     pub path: PathBuf,
     pub is_folder: bool,
     pub song_data: SongFileData
+}
+
+impl FileEntry {
+    pub fn from_song_view(song: &SongView) -> Self {
+        FileEntry {
+            path: PathBuf::from(&song.path),
+            is_folder: false,
+            song_data: SongFileData::Song { song_view: song.clone() },
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -129,8 +144,6 @@ pub fn file_browser(starting_path: String) -> Element {
     let open_folder = move |file_path: String| {
         *current_path.write() = file_path;
     };
-
-
     
     rsx! {
         div {
@@ -149,21 +162,28 @@ pub fn file_browser(starting_path: String) -> Element {
                             evt.prevent_default();
                         }
                     }
-                    for item in items().entries {
+                    
+                    for (index, item) in items().entries.iter().enumerate() {
                         {
+                            let scan_result = items();
                             let item = item.clone();
+                            let index = index;
                             let mut current_path = current_path.clone();
                             let db = db.clone();
-                            let mut playing_state = playing_state.clone();
                             let mut player_context = player_context.clone();
                             rsx! {
-                                self::file { file: item.clone(),
+                                self::song_file { file: item.clone(),
                                      on_click: move |path| {
                                         if item.is_folder {
                                             current_path.set(path);
                                         } else {
                                             if let Ok(song) = db.get().get_song_view_by_path(&path) {
                                                 player_context.queue.write().play_song_instant(&song);
+                                                player_context.queue.write().current_fallback_queue.set(QueueFallbackMode::Folder {
+                                                    path: current_path().clone(),
+                                                    current_item: index,
+                                                    entries: scan_result.clone(),
+                                                });
                                             }
                                         }
                                      }
@@ -172,16 +192,19 @@ pub fn file_browser(starting_path: String) -> Element {
                         }
                     }
                 }
+                playlist_browser {}
             }
+            
         }
     }
 }
 
 #[component]
-pub fn file(file: FileEntry, on_click: EventHandler<String>) -> Element {
+pub fn song_file(file: FileEntry, on_click: EventHandler<String>) -> Element {
     let mut show_context_menu = use_signal(|| false);
-    let mut context_menu_x = use_signal(|| 0.0);
-    let mut context_menu_y = use_signal(|| 0.0);
+    let mut context_menu_pos = use_signal(|| (0.0, 0.0));
+    let mut show_add_to_playlist_menu = use_signal(|| false);
+    let mut add_playlist_menu_pos = use_signal(|| (0.0, 0.0));
     
     let db = use_context::<DatabaseContext>();
     let mut player_context = use_context::<PlayerContext>();
@@ -204,6 +227,106 @@ pub fn file(file: FileEntry, on_click: EventHandler<String>) -> Element {
     
     let file_path = file.path.to_string_lossy().to_string();
     
+    let db_clone = db.clone();
+    let fp_clone = file_path.clone();
+    let mut play_instant = move || {
+        if let Ok(song) = db_clone.get().get_song_view_by_path(&fp_clone) {
+            player_context.queue.write().play_song_instant(&song);
+        }
+    };
+    let db_clone = db.clone();
+    let fp_clone = file_path.clone();
+    let mut play_next = move || {
+        if let Ok(song) = db_clone.get().get_song_view_by_path(&fp_clone) {
+            player_context.queue.write().play_song_next(&song);
+        }
+    };
+
+    let db_clone = db.clone();
+    let fp_clone = file_path.clone();
+    let mut add_song_to_queue = move || {
+        if let Ok(song) = db_clone.get().get_song_view_by_path(&fp_clone) {
+            player_context.queue.write().add_song_to_queue(&song);
+        }
+    };
+
+    let db_clone = db.clone();
+    let fp_clone = file_path.clone();
+    let mut add_folder_to_queue = move || {
+        player_context.queue.write().add_entire_path_to_queue(&fp_clone, &db_clone.get());
+    };
+
+    let db_clone = db.clone();
+    let fp_clone = file_path.clone();
+    let mut play_folder_next = move || {
+        player_context.queue.write().play_folder_next(&fp_clone, &db_clone.get());
+    };
+
+    let db_clone = db.clone();
+    let fp_clone = file_path.clone();
+    let mut play_folder_now = move || {
+        player_context.queue.write().play_folder_now(&fp_clone, &db_clone.get());
+    };
+
+    let song_id = match &file.song_data {
+        SongFileData::Song { song_view } => Some(song_view.id),
+        SongFileData::NotSong {} => None,
+    };
+
+    let context_menu_items = if !file.is_folder { 
+        let mut items = vec![
+            ContextMenuItem {
+                title: "Play".to_string(),
+                action: EventHandler::new(move |_| {
+                    play_instant();
+                }),
+            },
+            ContextMenuItem {
+                title: "Play Next".to_string(),
+                action: EventHandler::new(move |_| {
+                    play_next();
+                }),
+            },
+            ContextMenuItem {
+                title: "Add to queue".to_string(),
+                action: EventHandler::new(move |_| {
+                    add_song_to_queue();
+                }),
+            },
+        ];
+        
+        if song_id.is_some() {
+            items.push(ContextMenuItem {
+                title: "Add to playlist...".to_string(),
+                action: EventHandler::new(move |_| {
+                    add_playlist_menu_pos.set(context_menu_pos());
+                    show_add_to_playlist_menu.set(true);
+                }),
+            });
+        }
+        
+        items
+    } else {
+         vec![
+            ContextMenuItem {
+                title: "Play all now".to_string(),
+                action: EventHandler::new(move |_| {
+                    play_folder_now();
+                }),
+            },
+            ContextMenuItem {
+                title: "Play all next".to_string(),
+                action: EventHandler::new(move |_| {
+                    play_folder_next();
+                }),
+            },
+            ContextMenuItem {
+                title: "Add all to queue".to_string(),
+                action: EventHandler::new(move |_| {
+                    add_folder_to_queue();
+                }),
+            },
+        ]};
     rsx! {
         file_shortcut { 
             name: match file.song_data {
@@ -215,14 +338,19 @@ pub fn file(file: FileEntry, on_click: EventHandler<String>) -> Element {
             on_click: on_click.clone(),
             on_context_menu: move |evt: Event<MouseData>| {
                 evt.prevent_default();
-                context_menu_x.set(evt.client_coordinates().x);
-                context_menu_y.set(evt.client_coordinates().y);
+                context_menu_pos.set((evt.client_coordinates().x, evt.client_coordinates().y));
                 show_context_menu.set(true);
             }
         }
-        
-        if show_context_menu() {
-            
+        context_menu { pos: context_menu_pos.clone(),
+            show_context_menu: show_context_menu.clone(),
+            items: context_menu_items.clone()}
+        if let Some(song_id) = song_id {
+            add_to_playlist_menu {
+                song_id,
+                show: show_add_to_playlist_menu,
+                pos: add_playlist_menu_pos
+            }
         }
     }
 }
@@ -244,6 +372,77 @@ pub fn file_shortcut(name: String, icon: Element, path: String, on_click: EventH
                 class: "file-item",
                 div { class: "item-icon", {icon}  }
                 div { class: "item-name", "{name}" }
+            }
+        }
+    }
+}
+
+#[component]
+pub fn add_to_playlist_menu(song_id: i32, show: Signal<bool>, pos: Signal<(f64, f64)>) -> Element {
+    let db = use_context::<DatabaseContext>();
+    let mut playlist_update = use_context::<PlayerContext>().playlist_update_counter;
+    let mut show_create_dialog = use_signal(|| false);
+
+    let db_clone = db.clone();
+    let playlists = use_memo(move || {
+        let _ = playlist_update();
+        db_clone.get().get_all_playlists().unwrap_or_default()
+    });
+
+    if !show() {
+        return rsx! {};
+    }
+
+    let (x, y) = *pos.read();
+
+    rsx! {
+        div {
+            class: "context-menu-overlay",
+            onclick: move |_| {
+                show.set(false);
+            },
+            oncontextmenu: move |evt: Event<MouseData>| {
+                evt.prevent_default();
+                show.set(false);
+            },
+
+            div {
+                class: "context-menu",
+                style: "left: {x}px; top: {y}px; position: fixed;",
+                onclick: move |evt: Event<MouseData>| evt.stop_propagation(),
+
+                button {
+                    class: "context-menu-item",
+                    onclick: move |_| {
+                        show_create_dialog.set(true);
+                    },
+                    "Create New Playlist..."
+                }
+
+                for (playlist_id, playlist_name) in playlists() {
+                    {
+                        let db_clone = db.clone();
+                        rsx! {
+                            button {
+                                class: "context-menu-item",
+                                onclick: move |_| {
+                                    let _ = db_clone.get().add_song_to_playlist(playlist_id, song_id);
+                                    playlist_update.set(playlist_update() + 1);
+                                    show.set(false);
+                                },
+                                "{playlist_name}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        create_playlist_dialog {
+            show: show_create_dialog,
+            on_created: move |playlist_id| {
+                let _ = db.get().add_song_to_playlist(playlist_id, song_id);
+                show.set(false);
             }
         }
     }

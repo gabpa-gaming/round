@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
-use dioxus::desktop::wry::cookie::time::Duration;
-use dioxus::desktop::wry::cookie::time::format_description::modifier::WeekNumber;
+
 use dioxus::prelude::*;
-use rodio::{OutputStream, Sink};
-use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::{Sender};
 
 use crate::audio_controller_command::AudioControllerCommand;
 use crate::db::Db;
@@ -23,6 +21,10 @@ impl DatabaseContext {
     pub fn get(&self) -> &Db {
         &self.0
     }
+
+    pub fn arc(&self) -> Arc<Db> {
+        self.0.clone()
+    }
 }
 
 impl PartialEq for DatabaseContext {
@@ -31,29 +33,59 @@ impl PartialEq for DatabaseContext {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq)]
+pub enum PlaybackMode {
+    Normal,
+    Loop,
+    Shuffle,
+}
+
+impl PartialEq for PlaybackMode {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (PlaybackMode::Normal, PlaybackMode::Normal) => true,
+            (PlaybackMode::Loop, PlaybackMode::Loop) => true,
+            (PlaybackMode::Shuffle, PlaybackMode::Shuffle) => true,
+            _ => false,
+        }
+    }
+    
+    fn ne(&self, other: &Self) -> bool {
+        !self.eq(other)
+    }
+}
 #[derive(Clone)]
 pub struct PlayerContext {
     pub playing_state: Signal<PlayerPlayingState>,
     pub volume: Signal<f32>,
     pub speed: Signal<f32>,
-    pub loop_: Signal<bool>,
-    pub shuffle: Signal<bool>,
+    pub mode: Signal<PlaybackMode>,
     command_sender: Sender<AudioControllerCommand>,
+    pub playlist_update_counter: Signal<u64>,
     pub queue: Signal<QueueState>,
 }
 
 impl PlayerContext {
     pub fn new(sender: Sender<AudioControllerCommand>) -> Self {
         let playing_state = Signal::new(PlayerPlayingState::NoSongSelected);
+        let mode = Signal::new(PlaybackMode::Normal);
         PlayerContext {
             playing_state: playing_state.clone(),
             volume: Signal::new(1.0),
             speed: Signal::new(1.0),
-            loop_: Signal::new(false),
-            shuffle: Signal::new(false),
+            mode: mode.clone(),
             command_sender: sender.clone(),
-            queue: Signal::new(QueueState::new(playing_state.clone(), sender.clone())),
+            playlist_update_counter: Signal::new(0),
+            queue: Signal::new(QueueState::new(playing_state.clone(), sender.clone(), mode.clone())),
         }
+    }
+
+    pub fn previous_song(&mut self) {
+        self.queue.write().previous_song();
+    }
+
+    pub fn next_song(&mut self) {
+        self.queue.write().next_song();
     }
 
     pub fn play(&mut self) {

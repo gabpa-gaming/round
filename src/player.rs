@@ -1,17 +1,12 @@
-use std::{fs::File, io::BufReader};
 
-use dioxus::{html::{p, path, progress}, prelude::*};
-use rodio::{Decoder, OutputStream, Sink};
+use dioxus::prelude::*;
 
-use crate::{app_context::PlayerContext, audio_controller_command::AudioControllerCommand, db::SongView, player, player_playing_state::PlayerPlayingState};
+use crate::app_context::{PlaybackMode, PlayerContext};
 
 
 
 #[component]
 pub fn player_sidebar() -> Element {
-
-    let player_state = use_context::<PlayerContext>();
-
     rsx! {
         div { class: "now-playing-sidebar",
                 div { class: "content-section",
@@ -20,7 +15,7 @@ pub fn player_sidebar() -> Element {
                 div { class: "song-view-container",
                         song_progress_bar { }
                 }
-            }
+        }
     }
 }
 
@@ -138,7 +133,7 @@ pub fn song_length_marker(len: ReadSignal<u64>, prog: ReadSignal<u64>) -> Elemen
     let remaining = use_memo(move || {
         let len = *len.read();
         let prog = *prog.read();
-        let len =  if prog > len { prog } else { len }; //<- bandaid to prevent overflow when len is not updated yet
+        let len =  if prog > len { prog } else { len }; //prevent overflow when len is not updated yet
         let remaining = len / 1000 - prog / 1000;       //happens for one frame only when song finished and another song is loaded 
         let minutes = remaining / 60;
         let seconds = remaining % 60;
@@ -166,17 +161,82 @@ pub fn playback_controls() -> Element {
     
     let is_playing = use_memo(move || player_state.playing_state.read().is_playing());
 
+    let mut prev_song = {
+        let mut ps = player_state.clone();
+        move || {
+            ps.previous_song();
+        }
+    };
+
+    let mut next_song = {
+        let mut ns = player_state.clone();
+        move || {
+            ns.next_song();
+        }
+    };
+
+    let mut toggle_playback = {
+        let mut ps = player_state.clone();
+        move || {
+            if is_playing() {
+                ps.pause();
+            } else {
+                ps.play();
+            }
+        }
+    };
+
+    let mut toggle_mode = {
+        let mut ps = player_state.clone();
+        let mode = *ps.mode.read();
+        move || {
+            match mode {
+                PlaybackMode::Normal => {
+                    *ps.mode.write() = PlaybackMode::Shuffle;
+                }
+                PlaybackMode::Shuffle => {
+                    *ps.mode.write() = PlaybackMode::Loop;
+                }
+                PlaybackMode::Loop => {
+                    *ps.mode.write() = PlaybackMode::Normal;
+                }
+            }
+        }
+    };
+    
     rsx! {
-        div { class: "playback-controls",
-            button {
-                onclick: move |_| {
-                    if is_playing() {
-                        player_state.clone().pause();
-                    } else {
-                        player_state.clone().play();
+        div { class: "controls-container",
+            div { class: "common-button",
+                button {
+                    onclick: move |_| {
+                        prev_song();
+                    },
+                    {"⏮"}
+                }
+                button {
+                    onclick: move |_| {
+                        toggle_playback();
+                    },
+                    if is_playing() { "⏸" } else { "▶" }
+                }
+                button {
+                    onclick: move |_| {
+                        next_song();
+                    },
+                    {"⏭"}
+                }
+            }
+            div { class: "right-controls",
+                button {
+                    onclick: move |_| {
+                        toggle_mode();
+                    },
+                    match *player_state.mode.read() {
+                        PlaybackMode::Normal => "→",
+                        PlaybackMode::Shuffle => "⚂",
+                        PlaybackMode::Loop => "↻",
                     }
-                },
-                if is_playing() { "⏸" } else { "▶" }
+                }
             }
         }
     }

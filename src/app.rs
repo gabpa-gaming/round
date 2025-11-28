@@ -1,8 +1,8 @@
-use dioxus::{html::audio, prelude::*};
+use dioxus::prelude::*;
 use directories::UserDirs;
-use tokio::sync::mpsc::{Sender, channel, unbounded_channel};
+use tokio::sync::mpsc::channel;
 
-use crate::{FAVICON, MAIN_CSS, app_context::{DatabaseContext, PlayerContext}, audio_controller::{self, AudioController}, audio_controller_command::AudioControllerCommand, file_browser::file_browser, player::player_sidebar, queue_bar::queue_bar};
+use crate::{FAVICON, MAIN_CSS, app_context::{DatabaseContext, PlayerContext}, audio_controller::AudioController, audio_controller_command::AudioControllerCommand, file_browser::file_browser, player::player_sidebar, queue_bar::queue_bar};
 
 #[component]
 pub fn App() -> Element {
@@ -30,11 +30,11 @@ pub fn App() -> Element {
         player_ctx
     });
 
-    let player_context = use_context_provider(|| {
+    let _ = use_context_provider(|| {
         ctx
     });
 
-    let db = use_context_provider(|| DatabaseContext::new());
+    let _ = use_context_provider(|| DatabaseContext::new());
 
 
     rsx! {

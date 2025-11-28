@@ -3,13 +3,13 @@ use std::{fs::File, io::BufReader};
 
 use dioxus::signals::{ReadableExt, Signal, WritableExt};
 use rodio::{Decoder, OutputStream, Sink};
-use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::{Receiver};
 
 use crate::{audio_controller_command::AudioControllerCommand, player_playing_state::PlayerPlayingState};
 
 
 pub struct AudioController {
-    stream_handle: OutputStream,
+    _stream_handle: OutputStream,
     sink: Sink,
     receiver: Receiver<AudioControllerCommand>,
     playing_state: Signal<PlayerPlayingState>,
@@ -22,7 +22,7 @@ impl AudioController {
         let sink = rodio::Sink::connect_new(&stream_handle.mixer());
 
         AudioController {
-            stream_handle,
+            _stream_handle: stream_handle,
             sink,
             receiver,
             playing_state,
