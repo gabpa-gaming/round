@@ -33,9 +33,8 @@ pub fn create_playlist_dialog(
 
                 h3 { style: "margin-bottom: 24px;
                             font-size: 24px;
-                            text-transform: uppercase;
                             text-align: center;",
-                    "New playlist"
+                    "NEW PLAYLIST"
                 }
                 input {
                     r#type: "text",

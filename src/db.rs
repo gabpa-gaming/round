@@ -7,7 +7,7 @@ use rusqlite::{Connection, OptionalExtension, Result, params};
 
 use crate::errors::SongAddError;
 
-const DB_STATE_VERSION: i32 = 8; //Change this when the DB schema changes
+const DB_STATE_VERSION: i32 = 2; //Change this when the DB schema changes
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SongView {
@@ -79,8 +79,6 @@ pub struct Db {
 
 impl Db {
     pub fn new() -> Db {
-        
-
         let cache_dir = if let Some(user_dirs) = UserDirs::new() {
             let home = user_dirs.home_dir();
             let cache_dir = home.join(".local").join("share").join("round");
@@ -96,7 +94,9 @@ impl Db {
 
         db.conn.execute("PRAGMA foreign_keys = ON;", []).unwrap();
 
-        db.handle_db_version_change();
+        if db.handle_db_version_change().is_err() {
+            panic!("Failed to handle DB version change");
+        }
 
         db.conn.execute(
             "CREATE TABLE IF NOT EXISTS artists (
@@ -271,7 +271,7 @@ impl Db {
         }
     }
 
-    pub fn add_song(&self, song: &SongDbEntry) {
+    pub fn add_song(&self, song: &SongDbEntry) -> Result<SongDbEntry, SongAddError> {
         print!("Adding song: {} by album ID: {}", song.title, song.album_id);
         self.conn.execute(
         "INSERT OR IGNORE INTO songs
@@ -286,6 +286,20 @@ impl Db {
             song.play_count
         ],
         ).unwrap();
+        let song_id = self.conn.query_row(
+            "SELECT id FROM songs WHERE path = ?1",
+            params![song.path],
+            |row| row.get(0),
+        )?;
+        Ok(SongDbEntry {
+                id: song_id,
+                path: song.path.clone(),
+                title: song.title.clone(),
+                album_id: song.album_id,
+                track_number: song.track_number,
+                duration_seconds: song.duration_seconds,
+                play_count: song.play_count
+            })
     }
 
     pub fn add_or_get_song_by_path(&self, path: &str) -> Result<SongDbEntry, SongAddError> {
@@ -365,8 +379,7 @@ impl Db {
             play_count: 0,
         };
 
-        self.add_song(&song);
-        Ok(song)
+        self.add_song(&song)
     }
 
     fn try_get_album_artist_then_artist(tag: Option<&Box<dyn AudioTag + Send + Sync>>) -> String {
@@ -397,6 +410,7 @@ impl Db {
     }
 
     pub fn add_song_to_playlist(&self, playlist_id: i32, song_id: i32) -> Result<()> {
+        print!("Adding song ID: {} to playlist ID: {}", song_id, playlist_id);
         let next_position: i32 = self.conn.query_row(
             "SELECT COALESCE(MAX(position), 0) + 1 FROM playlist_songs WHERE playlist_id = ?1",
             params![playlist_id],
@@ -506,7 +520,7 @@ impl Db {
                     play_count: row.get(8)?,
                 })
             }
-        ).optional() { // fix this
+        ).optional() { 
             Ok(song_entry)
         } else {
             if let Some(song) = self.add_or_get_song_by_path(path).ok() {
@@ -516,32 +530,6 @@ impl Db {
                 Err(rusqlite::Error::QueryReturnedNoRows)
             }
         }
-    }
-
-    pub fn check_db_ver(&self) -> Result<bool> {
-        let user_version: i32 = self.conn.query_row(
-            "PRAGMA user_version;",
-            [],
-            |row| row.get(0),
-        )?;
-
-        Ok(user_version == DB_STATE_VERSION)
-    }
-
-    pub fn handle_db_version_change(&self) -> Result<()> {
-        let user_version: i32 = self.conn.query_row(
-            "PRAGMA user_version;",
-            [],
-            |row| row.get(0),
-        )?;
-
-        if user_version != DB_STATE_VERSION {
-            println!("Database version mismatch. Expected: {}, Found: {}. Purging database.", DB_STATE_VERSION, user_version);
-            self.purge_db()?;
-            self.conn.pragma_update(None,"user_version", &DB_STATE_VERSION)?;
-        }
-
-        Ok(())
     }
 
     pub fn get_playlist_data(&self, id: i32) -> Result<(i32, String)> {
@@ -591,12 +579,39 @@ impl Db {
         Ok(())
     }
 
+    pub fn handle_db_version_change(&self) -> Result<()> {
+        let user_version: i32 = self.conn.query_row(
+            "PRAGMA user_version;",
+            [],
+            |row| row.get(0),
+        )?;
+
+        if user_version != DB_STATE_VERSION {
+            println!("Database version mismatch. Expected: {}, Found: {}. Purging database.", DB_STATE_VERSION, user_version);
+            self.purge_db()?;
+            self.conn.pragma_update(None,"user_version", &DB_STATE_VERSION)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn check_db_ver(&self) -> Result<bool> {
+        let user_version: i32 = self.conn.query_row(
+            "PRAGMA user_version;",
+            [],
+            |row| row.get(0),
+        )?;
+
+        Ok(user_version == DB_STATE_VERSION)
+    }
+
     pub fn purge_db(&self) -> Result<()> {
+        self.conn.execute("DROP TABLE playlist_songs", [])?;
+        self.conn.execute("DROP TABLE playlists", [])?;
+
         self.conn.execute("DROP TABLE songs", [])?;
         self.conn.execute("DROP TABLE albums", [])?;
         self.conn.execute("DROP TABLE artists", [])?;
-        self.conn.execute("DROP TABLE playlists", [])?;
-        self.conn.execute("DROP TABLE playlist_songs", [])?;
         Ok(())
     }
 

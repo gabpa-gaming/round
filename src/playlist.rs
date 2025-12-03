@@ -19,13 +19,6 @@ impl PartialEq for Playlist {
 }
 
 impl Playlist {
-    fn new(id: i32, name: String, db: Arc<Db>) -> Result<Self, rusqlite::Error> {
-        let db = db.clone();
-        let id = db.create_playlist(&name);
-
-        Self::get_playlist_handle(id?, db)
-    }
-
     pub fn get_playlist_handle(id: i32, db: Arc<Db>) -> Result<Playlist, rusqlite::Error> {
         let db = db.clone();
         let data = db.get_playlist_data(id)?;

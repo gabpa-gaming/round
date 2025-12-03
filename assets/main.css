@@ -65,7 +65,8 @@ h1, h2, h3, h4, h5, h6 {
     background-color: #4a4a4a;
     border: 1px solid #555555;
     border-radius: 8px;
-    margin-bottom: 24px;
+    margin-top: 20px;
+    margin-bottom: 14px;
     margin-left: auto;
     margin-right: auto;
     
@@ -81,18 +82,28 @@ h1, h2, h3, h4, h5, h6 {
 
 .song-metadata {
     text-align: center;
-    flex-shrink: 0;
+    margin-bottom: 16px;
 }
 
 .song-metadata h3 {
-    font-size: 24px;
+    font-size: 42px;
+    padding-top: 40px;
     font-weight: 700;
     color: #ffffff;
     margin-bottom: 8px;
 }
 
+
+.song-metadata h4 {
+    font-size: 16px;
+    font-weight: 400;
+    color: #cccccc;
+    margin-bottom: 8px;
+    max-lines: 1;
+}
+
 .song-metadata p {
-    font-size: 18px;
+    font-size: 14px; 
     color: #cccccc;
     font-weight: 400;
 }
@@ -323,14 +334,14 @@ h1, h2, h3, h4, h5, h6 {
     justify-content: center;
     align-items: center;
     position: relative;
+    
     width: 100%;
 }
 
 .right-controls {
     position: absolute;
-    right: 0;
+    right: -18px;
     display: flex;
-    gap: 4px;
 }
 
 .right-controls button {
@@ -344,6 +355,11 @@ h1, h2, h3, h4, h5, h6 {
     cursor: pointer;
     transition: all 0.2s ease;
     text-transform: lowercase;
+    line-height: 1;
+    width: fit-content;
+    justify-content: center;
+    align-items: center;
+    box-sizing: content-box;
 }
 
 .right-controls button:hover {
@@ -370,15 +386,24 @@ h1, h2, h3, h4, h5, h6 {
     transition: all 0.2s ease;
     text-transform: lowercase;
 }
+
 .controls-container .common-button button {
-    font-size: 30px;
+    font-size: 40px;
+    aspect-ratio: 1/1;
+    padding : 10px 10px;
+    min-width: 1em;
+    line-height: 1;
+    width: fit-content;
+    justify-content: center;
+    align-items: center;
+    box-sizing: content-box;
 }
 
 .common-button button:hover {
     border-color: #777777;
     background-color: #454545;
     transform: translateY(-2px);
-    box-shadow: 0px 4px 8px rgba(0, 0z, 0, 0.4);
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.4);
 }
 
 .common-button button:active {
@@ -403,7 +428,7 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 8px;
     box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.6);
     padding: 4px;
-    z-index: 1000;
+    z-index: 999;
     min-width: 150px;
 }
 

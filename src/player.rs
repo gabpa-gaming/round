@@ -29,10 +29,7 @@ pub fn song_metadata_view() -> Element {
         if let Some(song) = current_track() {
             rsx! {
                 div { class: "song-metadata",
-                    style: "font-size: 14px;",
-                    { song.artist },
-                    { " - " },
-                    { song.title }
+                    h3 { {song.title} }
                     div { class: "album-art",
                         { if let Some(art_path) = &song.album_art_path {
                             rsx! {
@@ -51,21 +48,24 @@ pub fn song_metadata_view() -> Element {
                             }
                         } }
                     }
+                    h4 { {song.artist} },
                 }
             }
         } else {
             rsx! {
                 div {
-                    style: "font-size: 14px;",
+                    class: "song-metadata",
                     h3 { "nothing" }
                 }
             }
         };
 
     rsx! {
-        p { 
-            "currently playing:"
-            { playing }
+        div { class: "song-metadata",
+            p { 
+                "currently playing:"
+                { playing }
+            }
         }
     }
 }
