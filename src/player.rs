@@ -1,5 +1,9 @@
 
-use dioxus::prelude::*;
+use core::fmt;
+use std::any::Any;
+
+use dioxus::{logger::tracing::{self, Instrument}, prelude::*};
+use web_sys::wasm_bindgen::JsCast;
 
 use crate::app_context::{PlaybackMode, PlayerContext};
 
@@ -29,7 +33,7 @@ pub fn song_metadata_view() -> Element {
         if let Some(song) = current_track() {
             rsx! {
                 div { class: "song-metadata",
-                    h3 { {song.title} }
+                    scrolling_container { h3 { {song.title} } }
                     div { class: "album-art",
                         { if let Some(art_path) = &song.album_art_path {
                             rsx! {
@@ -48,7 +52,7 @@ pub fn song_metadata_view() -> Element {
                             }
                         } }
                     }
-                    h4 { {song.artist} },
+                    scrolling_container {h4 { {song.artist} } },
                 }
             }
         } else {
@@ -241,3 +245,19 @@ pub fn playback_controls() -> Element {
         }
     }
 }
+
+#[component]
+pub fn scrolling_container(children: Element) -> Element {
+    rsx! {
+        div {
+            class: "scrolling-container-wrapper",
+            div {
+                class: "scrolling-detector",
+                div { class: "scrolling-content",
+                    //{children.clone()} 
+                    {children} 
+                }
+            }
+        }
+    }
+}        

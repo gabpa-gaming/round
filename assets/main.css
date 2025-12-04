@@ -82,24 +82,70 @@ h1, h2, h3, h4, h5, h6 {
 
 .song-metadata {
     text-align: center;
-    margin-bottom: 16px;
+    margin-bottom: 26px;
+    white-space: nowrap;
+    overflow-x: visible;
 }
 
 .song-metadata h3 {
-    font-size: 42px;
-    padding-top: 40px;
+    font-size: 16px;
     font-weight: 700;
     color: #ffffff;
     margin-bottom: 8px;
 }
-
 
 .song-metadata h4 {
     font-size: 16px;
     font-weight: 400;
     color: #cccccc;
     margin-bottom: 8px;
-    max-lines: 1;
+}
+
+.song-metadata h3, .song-metadata h4{
+    max-height: 2lh;
+    overflow: clip;
+    text-wrap: clip;
+}
+
+
+.scrolling-container-wrapper {
+    overflow: clip;
+    width: 100%;
+}
+
+.scrolling-detector {
+    container-name: scroller;
+    container-type: inline-size;
+}
+
+.scrolling-content {
+    display: flex;
+    gap: 20px;
+    padding-right: 20px;
+    animation: scroll 10s linear infinite;
+    animation-play-state: paused;
+    width: 100%;
+    justify-content: center;
+}
+
+@container scroller (width > 200px) {
+    .scrolling-content {
+        animation-play-state: running;
+        justify-content: flex-start;
+    }
+}
+
+@keyframes scroll {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+}
+
+.side-fadeout {
+    width: 100%;
+    -webkit-mask-image: linear-gradient(90deg, black 85%, transparent 100%);
+    mask-image: linear-gradient(90deg, black 85%, transparent 100%);
+    white-space: nowrap;
+    overflow: clip;
 }
 
 .song-metadata p {

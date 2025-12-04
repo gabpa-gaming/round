@@ -18,11 +18,9 @@ pub mod playlist;
 pub mod playlist_browser;
 pub mod create_playlist_dialog;
 
-use crate::{app::App, app_context::PlayerContext, audio_controller::AudioController, audio_controller_command::AudioControllerCommand};
-
+use crate::{app::App};
 const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/main.css");
-const HEADER_SVG: Asset = asset!("/assets/header.svg");
 
 fn main() {
     dioxus::LaunchBuilder::new()
@@ -31,6 +29,7 @@ fn main() {
                 .with_window(
                     dioxus::desktop::WindowBuilder::new().with_title("Round")
                 )
+                //.with_menu(None)
         )
         .launch(App);
 }
