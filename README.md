@@ -181,7 +181,7 @@ When contributing:
 
 ## License
 
-This project is licensed under the terms specified by the author.
+This project is licensed under the MIT license.
 
 ## Credits
 
