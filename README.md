@@ -11,15 +11,15 @@ Round is a desktop music player that prioritizes simplicity and functionality. I
 ### Core Features
 - **Audio Playback**: Play MP3, FLAC, WAV, AAC, and OGG audio files
 - **Music Library Management**: Automatic metadata extraction (artist, album, title, track numbers)
-- **Album Art Support**: Displays embedded album art or searches for cover images in song directories
-- **Smart File Browser**: Grid and list view modes that adapt based on folder content
+- **Album Art Support**: Displays album art or searches for cover images in song directories
+- **File Browser**: Grid and list view modes that adapt based on folder content
 - **Queue Management**: Customizable playback queue with play next/add to queue functionality
 
 ### Playlist Features
 - **Create Custom Playlists**: Organize your favorite songs into playlists
 - **Playlist Management**: Rename, delete, and manage playlist contents
-- **Add Songs to Playlists**: Right-click context menu for quick playlist operations
-- **Playlist Playback**: Play entire playlists with queue integration
+- **Add Songs to Playlists**: Right-click context menu for playlist operations
+- **Playlist Playback**: Play entire playlists with queue
 
 ### Playback Features
 - **Playback Modes**:
@@ -30,18 +30,8 @@ Round is a desktop music player that prioritizes simplicity and functionality. I
 - **Volume Control**: Adjustable volume slider
 - **Progress Tracking**: Visual progress bar with time display
 - **Queue System**: Play next queue with fallback to folder/playlist playback
-
-### User Interface
-- **Dark Theme**: Easy-on-the-eyes dark color scheme
-- **Responsive Layout**: Three-column layout (file browser, now playing, sidebar)
-- **Context Menus**: Right-click menus for files, folders, and playlists
-- **Up Next Display**: See what's coming up in the queue
-- **Animated Text**: Smooth scrolling for long song titles and metadata
-
+- 
 ## Prerequisites
-
-Before compiling Round, ensure you have the following installed:
-
 ### Required
 - **Rust** (1.70 or later) - Install from [rustup.rs](https://rustup.rs/)
 - **Dioxus CLI** - Install with: `curl -sSL http://dioxus.dev/install.sh | sh`
@@ -57,7 +47,6 @@ Before compiling Round, ensure you have the following installed:
    ```bash
    dx bundle 
    ```
-
    (Refer to https://dioxuslabs.com/learn/0.7/tutorial/bundle/)
 
 ## Running Round
