@@ -19,8 +19,6 @@ pub mod playlist_browser;
 pub mod create_playlist_dialog;
 
 use crate::{app::App};
-const FAVICON: Asset = asset!("/assets/favicon.ico");
-const MAIN_CSS: Asset = asset!("/assets/main.css");
 
 fn main() {
     dioxus::LaunchBuilder::new()

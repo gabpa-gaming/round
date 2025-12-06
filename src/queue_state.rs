@@ -4,6 +4,8 @@ use dioxus::{html::meter::max, prelude::*};
 use rand::{random, rng, seq::SliceRandom};
 use tokio::sync::mpsc::Sender;
 
+use anyhow::{anyhow, Result};
+
 use crate::{app_context::PlaybackMode, audio_controller_command::AudioControllerCommand, db::{Db, SongView}, file_browser::{ScanResult, SongFileData, scan_dir, song_file}, player_playing_state::PlayerPlayingState, playlist::{self, Playlist}};
 
 const HISTORY_MAX_SIZE: usize = 9999;
@@ -116,7 +118,8 @@ impl QueueState {
     }
 
     pub fn next_song(&mut self) {
-        let next_opt = if *self.mode.clone().read() == PlaybackMode::Shuffle {
+        loop {
+            let next_opt = if *self.mode.clone().read() == PlaybackMode::Shuffle {
             if !self.play_next_queue.read().is_empty() {
                 let rand = random::<u32>();
                 let index = rand as usize % self.play_next_queue.read().len();
@@ -124,29 +127,30 @@ impl QueueState {
             } else {
                 self.current_fallback_queue.write().next_shuffle(&self.last_played.read())
             }
-        } else if *self.mode.clone().read() == PlaybackMode::Loop{
-            if let Some(current_song) = self.playing_state.read().current_song() {
-                Some(current_song)
+            } else if *self.mode.clone().read() == PlaybackMode::Loop{
+                if let Some(current_song) = self.playing_state.read().current_song() {
+                    Some(current_song)
+                } else if let Some(next_song) = self.play_next_queue.write().pop_front() {
+                    Some(next_song)
+                } else {
+                    self.current_fallback_queue.write().next()
+                }
             } else if let Some(next_song) = self.play_next_queue.write().pop_front() {
                 Some(next_song)
             } else {
                 self.current_fallback_queue.write().next()
+            };
+            if let Some(song) = self.playing_state.read().current_song() {
+                self.last_played.write().push_back(song.clone());
             }
-        } else if let Some(next_song) = self.play_next_queue.write().pop_front() {
-            Some(next_song)
-        } else {
-            self.current_fallback_queue.write().next()
-        };
-        if let Some(song) = self.playing_state.read().current_song() {
-            self.last_played.write().push_back(song.clone());
-        }
-        if next_opt.is_none() {
-            eprintln!("Queue empty");
-            self.send_cmd(AudioControllerCommand::Stop);
-            *self.playing_state.write() = PlayerPlayingState::NoSongSelected;
-            return;
-        }
-        self.play_song_instant(&next_opt.unwrap());
+            if next_opt.is_none() {
+                eprintln!("Queue empty");
+                self.send_cmd(AudioControllerCommand::Stop);
+                *self.playing_state.write() = PlayerPlayingState::NoSongSelected;
+                return;
+            }
+            if self.play_song_instant(&next_opt.unwrap()).is_ok() { return }
+        } 
     }
 
     pub fn previous_song(&mut self) {
@@ -160,13 +164,19 @@ impl QueueState {
             *self.playing_state.write() = PlayerPlayingState::NoSongSelected;
             return;
         }
-        self.play_song_instant(&prev_opt.unwrap());
+        if self.play_song_instant(&prev_opt.unwrap()).is_ok() { return }
     }
 
-    pub fn play_song_instant(&mut self, song: &SongView) {
+    pub fn play_song_instant(&mut self, song: &SongView) -> Result<()>{
+        let song_file = std::fs::File::open(&song.path);
+        if song_file.is_err() {
+            eprintln!("Failed to open song file: {}", song.path);
+            return Err(anyhow!("Failed to open song file: {}", song.path));
+        }
         self.send_cmd(AudioControllerCommand::Load(song.path.clone()));
-        self.send_cmd(AudioControllerCommand::Play);
-        *self.playing_state.write() = PlayerPlayingState::Playing { song: song.clone(), progress_ms: 0};
+        self.send_cmd(AudioControllerCommand::Play);    
+        *self.playing_state.write() = PlayerPlayingState::Playing { song: song.clone(), progress_ms: 0};    
+        Ok(())
     }
 
     pub fn play_song_next(&mut self, song: &SongView) {

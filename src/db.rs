@@ -595,6 +595,61 @@ impl Db {
         Ok(())
     }
 
+    pub fn remove_a_song_from_db(&self, path: &str) -> Result<()> {
+        // First, get the song ID and album ID
+        let song_info: Option<(i32, i32)> = self.conn.query_row(
+            "SELECT id, album_id FROM songs WHERE path = ?1",
+            params![path],
+            |row| Ok((row.get(0)?, row.get(1)?))
+        ).optional()?;
+
+        if let Some((song_id, album_id)) = song_info {
+            self.conn.execute(
+                "DELETE FROM playlist_songs WHERE song_id = ?1",
+                params![song_id],
+            )?;
+
+            self.conn.execute(
+                "DELETE FROM songs WHERE id = ?1",
+                params![song_id],
+            )?;
+
+            let album_has_songs: bool = self.conn.query_row(
+                "SELECT EXISTS(SELECT 1 FROM songs WHERE album_id = ?1)",
+                params![album_id],
+                |row| row.get(0)
+            )?;
+
+            if !album_has_songs {
+                let artist_id: i32 = self.conn.query_row(
+                    "SELECT artist_id FROM albums WHERE id = ?1",
+                    params![album_id],
+                    |row| row.get(0)
+                )?;
+
+                self.conn.execute(
+                    "DELETE FROM albums WHERE id = ?1",
+                    params![album_id],
+                )?;
+
+                let artist_has_albums: bool = self.conn.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM albums WHERE artist_id = ?1)",
+                    params![artist_id],
+                    |row| row.get(0)
+                )?;
+
+                if !artist_has_albums {
+                    self.conn.execute(
+                        "DELETE FROM artists WHERE id = ?1",
+                        params![artist_id],
+                    )?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn check_db_ver(&self) -> Result<bool> {
         let user_version: i32 = self.conn.query_row(
             "PRAGMA user_version;",

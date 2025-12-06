@@ -2,7 +2,7 @@
 use core::fmt;
 use std::any::Any;
 
-use dioxus::{logger::tracing::{self, Instrument}, prelude::*};
+use dioxus::{desktop::tao::event::ElementState, html::{g::k, geometry::ElementSpace, u::{self, volume}}, logger::tracing::{self, Instrument}, prelude::*};
 use web_sys::wasm_bindgen::JsCast;
 
 use crate::app_context::{PlaybackMode, PlayerContext};
@@ -27,13 +27,29 @@ pub fn player_sidebar() -> Element {
 pub fn song_metadata_view() -> Element {
     let player_state = use_context::<PlayerContext>();
 
-    let current_track = use_memo(move || player_state.playing_state.read().current_song().clone());
+    let mut change_tracker = use_signal(|| 0u32);
+
+    let current_track = use_memo(move || {
+            player_state.playing_state.read().current_song().clone()
+        }
+    );
+
+    let change_action = use_memo(move || {
+        let _ =  current_track();
+        
+        let mut tracker = change_tracker.write();
+        let val = *tracker + 1;
+        println!("Song changed, updating metadata view: {}",val);
+        *tracker = val;
+    });
 
     let playing = 
         if let Some(song) = current_track() {
             rsx! {
-                div { class: "song-metadata",
-                    scrolling_container { h3 { {song.title} } }
+                div { class: "song-view",
+                    div { class: "side-fadeout song-metadata",
+                        h2 { scrolling_text { text: song.title, chars_per_second: 10.0 } },
+                    }
                     div { class: "album-art",
                         { if let Some(art_path) = &song.album_art_path {
                             rsx! {
@@ -52,7 +68,9 @@ pub fn song_metadata_view() -> Element {
                             }
                         } }
                     }
-                    scrolling_container {h4 { {song.artist} } },
+                    div { class: "side-fadeout song-metadata",
+                        h4 { scrolling_text { text: song.artist, chars_per_second: 10.0 } },
+                    }
                 }
             }
         } else {
@@ -210,6 +228,7 @@ pub fn playback_controls() -> Element {
     
     rsx! {
         div { class: "controls-container",
+            volume_control{ }
             div { class: "common-button",
                 button {
                     onclick: move |_| {
@@ -246,18 +265,67 @@ pub fn playback_controls() -> Element {
     }
 }
 
-#[component]
-pub fn scrolling_container(children: Element) -> Element {
+
+pub fn volume_control() -> Element {
+
+    let player_state = use_context::<PlayerContext>();
+
+    let ps = player_state.clone();
+
+    let set_val = move |value| {
+        ps.clone().set_volume(value);
+    };
+    let ps = player_state.clone();
+    let value = use_memo(
+        move || {
+            ps.get_volume() * 100.0
+        }
+    );
+
+    let style_str = use_memo(
+        move || {
+            format!("--slider-progress: {}%;", value())
+        }
+    );
+
+
+
     rsx! {
-        div {
-            class: "scrolling-container-wrapper",
-            div {
-                class: "scrolling-detector",
-                div { class: "scrolling-content",
-                    //{children.clone()} 
-                    {children} 
-                }
+        div { class: "left-controls",
+            input {
+                class: "slider-vert slider",
+                r#type: "range",
+                style: style_str,
+                min: "0",
+                max: "100",
+                value: value() ,
+                oninput: move |e| {
+                    let value = e.value().parse::<f32>().unwrap_or(50.0) / 100.0;
+                    set_val(value);
+                },
             }
         }
     }
+}
+#[component]
+pub fn scrolling_text(text: String, chars_per_second: f64) -> Element {
+    println!("scrolling container rendered");
+    let scroll_length = text.len() as f64 / chars_per_second ;
+    
+    rsx! {
+        div {
+            class: "outer-scrolling-wrapper",
+            div {
+                class: "inner-scrolling-container",
+                div { class: "smart-scrolling-container",
+                    style: format!("--anim-length: {}s;
+                                    animation-play-state: running;
+                                    animation-delay: 0s;", scroll_length),
+                    div { class: "scrolling-item",
+                        {text},
+                    } 
+                },
+            }
+        }   
+    }   
 }        

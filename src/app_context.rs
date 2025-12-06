@@ -57,7 +57,7 @@ impl PartialEq for PlaybackMode {
 #[derive(Clone)]
 pub struct PlayerContext {
     pub playing_state: Signal<PlayerPlayingState>,
-    pub volume: Signal<f32>,
+    volume: Signal<f32>,
     pub speed: Signal<f32>,
     pub mode: Signal<PlaybackMode>,
     command_sender: Sender<AudioControllerCommand>,
@@ -86,6 +86,16 @@ impl PlayerContext {
 
     pub fn next_song(&mut self) {
         self.queue.write().next_song();
+    }
+
+    pub fn set_volume(&mut self, volume: f32) {
+        self.send_cmd(AudioControllerCommand::SetVolume(volume));
+        self.volume.set(volume);
+        println!("Set volume to {}", volume);
+    }
+
+    pub fn get_volume(&self) -> f32 {
+        *self.volume.read()
     }
 
     pub fn play(&mut self) {

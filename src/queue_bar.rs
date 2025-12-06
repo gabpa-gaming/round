@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 
 
 
-use crate::app_context::PlayerContext;
+use crate::{app_context::PlayerContext, player::scrolling_text};
 
 #[component]
 pub fn queue_bar() -> Element {
@@ -17,7 +17,9 @@ pub fn queue_bar() -> Element {
     });
     let queue_items = use_memo( move || {
         let player_context = player_context.clone();
-        player_context.clone().queue.read().get_names()
+        player_context.clone().queue.read().get_names().iter().fold(String::new(), |acc, name| {
+            format!("{} >> {}", acc, name)
+        })
     });
 
     rsx! {
@@ -25,19 +27,13 @@ pub fn queue_bar() -> Element {
             h3 { class: "up-next-label",
                 "up next:"
             },
-            for item in queue_items() {
-                queue_item {song_name: item}
+
+            div { class: "side-fadeout",
+                scrolling_text {
+                    chars_per_second: 20.0,
+                    text: queue_items,
+                }
             }
         }
-    }
-}
-
-#[component]
-pub fn queue_item(song_name: String) -> Element {
-    rsx!{
-        div { class: "song-title",
-                " >> ",
-                { song_name }
-        },
     }
 }

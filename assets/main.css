@@ -82,16 +82,18 @@ h1, h2, h3, h4, h5, h6 {
 
 .song-metadata {
     text-align: center;
-    margin-bottom: 26px;
-    white-space: nowrap;
-    overflow-x: visible;
+    margin-bottom: 16px;
+    right: 0;
 }
 
 .song-metadata h3 {
-    font-size: 16px;
+    font-size: 22px;
     font-weight: 700;
     color: #ffffff;
     margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: visible;
 }
 
 .song-metadata h4 {
@@ -102,50 +104,86 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .song-metadata h3, .song-metadata h4{
+    text-wrap: nowrap;
+    white-space: nowrap;
     max-height: 2lh;
-    overflow: clip;
-    text-wrap: clip;
 }
 
-
-.scrolling-container-wrapper {
-    overflow: clip;
-    width: 100%;
-}
-
-.scrolling-detector {
-    container-name: scroller;
+.outer-scrolling-wrapper {
     container-type: inline-size;
-}
-
-.scrolling-content {
-    display: flex;
-    gap: 20px;
-    padding-right: 20px;
-    animation: scroll 10s linear infinite;
-    animation-play-state: paused;
     width: 100%;
-    justify-content: center;
+    max-width: 100%; 
+    overflow-x: hidden;     
+    margin-bottom: 0rem;
+    box-sizing: border-box;
 }
 
-@container scroller (width > 200px) {
-    .scrolling-content {
-        animation-play-state: running;
-        justify-content: flex-start;
+.inner-scrolling-container {
+    display: flex;          
+    width: max-content; 
+    gap: 1rem; 
+                 
+}
+
+.scrolling-item {
+    padding-inline: 1rem;
+    white-space: nowrap; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-inline: 30px;
+}
+
+.smart-scrolling-container:hover  {
+    animation-play-state: paused;
+}
+
+.smart-scrolling-container {
+    /*trigger warning: css programming*/
+
+    --half-diff: calc( ((100cqw - 100%) / 2)); 
+    --is-half-diff-positive: max(0px, min(1px, var(--half-diff))); /* 1 if positive, 0 if negative */
+    /* if half diff is positive then we set output to half-diff, else 0*/ 
+    --min-translate-value: calc( 
+            var(--is-half-diff-positive) * var(--half-diff) / 1px
+        );
+
+
+    animation: smart-scroll var(--anim-length) linear infinite alternate;
+    animation-play-state: running;
+}
+
+
+
+@keyframes smart-scroll {
+    0% { 
+        transform: translateX(var(--min-translate-value));
+    }
+    
+    100% { 
+        transform: translateX( min(var(--min-translate-value), calc(100cqw - 100%)) );
     }
 }
 
-@keyframes scroll {
-    0% { transform: translateX(0%); }
-    100% { transform: translateX(-50%); }
-}
+
 
 .side-fadeout {
     width: 100%;
-    -webkit-mask-image: linear-gradient(90deg, black 85%, transparent 100%);
-    mask-image: linear-gradient(90deg, black 85%, transparent 100%);
+    
+    -webkit-mask-image: linear-gradient(90deg, 
+        transparent 0%,   
+        black 5%,        
+        black 95%,       
+        transparent 100%  
+    );
+    mask-image: linear-gradient(90deg, 
+        transparent 0%, 
+        black 5%, 
+        black 95%, 
+        transparent 100%
+    );
+    
     white-space: nowrap;
-    overflow: clip;
 }
 
 .song-metadata p {
@@ -310,6 +348,25 @@ h1, h2, h3, h4, h5, h6 {
     background-color: #87C38A; 
 }
 
+
+.slider-vert {
+    writing-mode: bt-lr; 
+    
+    width: 8px;    
+    height: 60px;  
+
+    background-image: linear-gradient(
+        to top, 
+        #87C38A, 
+        #87C38A var(--slider-progress), 
+        #555555 var(--slider-progress), 
+        #555555
+    );
+    
+    -webkit-appearance: slider-vertical;
+    appearance: slider-vertical;
+}
+
 .queue-bar {
     background: linear-gradient(to top,
         rgb(31, 31, 31) 0%,
@@ -382,6 +439,12 @@ h1, h2, h3, h4, h5, h6 {
     position: relative;
     
     width: 100%;
+}
+
+.left-controls {
+    position: absolute;
+    left: -10px;
+    display: flex;
 }
 
 .right-controls {
