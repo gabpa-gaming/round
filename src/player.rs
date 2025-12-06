@@ -1,9 +1,6 @@
 
-use core::fmt;
-use std::any::Any;
 
-use dioxus::{desktop::tao::event::ElementState, html::{g::k, geometry::ElementSpace, u::{self, volume}}, logger::tracing::{self, Instrument}, prelude::*};
-use web_sys::wasm_bindgen::JsCast;
+use dioxus::prelude::*;
 
 use crate::app_context::{PlaybackMode, PlayerContext};
 
@@ -97,7 +94,7 @@ pub fn song_metadata_view() -> Element {
 pub fn song_progress_bar() -> Element {
     let player_state = use_context::<PlayerContext>();
 
-    let mut playing_state = player_state.playing_state.clone();
+    let playing_state = player_state.playing_state.clone();
     let current_song = use_memo(move || playing_state.read().current_song());
     
     let progress_ms = use_memo(move || playing_state.read().progress());

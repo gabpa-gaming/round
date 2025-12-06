@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::{
-    app_context::{DatabaseContext, PlayerContext}, context_menu::{ContextMenuItem, context_menu}, create_playlist_dialog::create_playlist_dialog, file_browser::{FileEntry, song_file}, playlist::Playlist, queue_state::QueueFallbackMode
+    app_context::{DatabaseContext, PlayerContext}, context_menu::{ContextMenuItem, context_menu}, file_browser::{FileEntry, song_file}, playlist::Playlist, queue_state::QueueFallbackMode
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -147,7 +147,7 @@ fn playlist_item(
 #[component]
 fn playlist_content(playlist_id: i32, playlist_name: String, on_back: EventHandler<()>) -> Element {
     let db = use_context::<DatabaseContext>();
-    let mut refresh_trigger = use_context::<PlayerContext>().playlist_update_counter.clone();
+    let refresh_trigger = use_context::<PlayerContext>().playlist_update_counter.clone();
     let mut player_context = use_context::<PlayerContext>();
     let db_clone = db.clone();
     let songs = use_memo(move || {
@@ -155,7 +155,7 @@ fn playlist_content(playlist_id: i32, playlist_name: String, on_back: EventHandl
         db_clone.get().get_songs_in_playlist(playlist_id).unwrap_or_default()
     });
 
-    let mut current_playlist = use_memo(move || {
+    let current_playlist = use_memo(move || {
         let _ = refresh_trigger();
         Playlist::get_playlist_handle(playlist_id, db.arc().clone()).ok()
     });

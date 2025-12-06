@@ -1,12 +1,12 @@
 use std::collections::VecDeque;
 
-use dioxus::{html::meter::max, prelude::*};
+use dioxus::prelude::*;
 use rand::{random, rng, seq::SliceRandom};
 use tokio::sync::mpsc::Sender;
 
 use anyhow::{anyhow, Result};
 
-use crate::{app_context::PlaybackMode, audio_controller_command::AudioControllerCommand, db::{Db, SongView}, file_browser::{ScanResult, SongFileData, scan_dir, song_file}, player_playing_state::PlayerPlayingState, playlist::{self, Playlist}};
+use crate::{app_context::PlaybackMode, audio_controller_command::AudioControllerCommand, db::{Db, SongView}, file_browser::{ScanResult, SongFileData, scan_dir}, player_playing_state::PlayerPlayingState, playlist::{self}};
 
 const HISTORY_MAX_SIZE: usize = 9999;
 

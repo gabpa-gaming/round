@@ -1,4 +1,3 @@
-use std::sync::mpsc::Sender;
 
 use dioxus::{desktop::{Config}, prelude::*};
 

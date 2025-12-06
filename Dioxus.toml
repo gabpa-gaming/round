@@ -22,5 +22,6 @@ script = []
 
 [bundle]
 identifier = "com.gabpa.round"
-publisher = "gabrys zych"
+publisher = "gabriel zych"
 product_name = "round"
+icon = ["assets/icon.png"]

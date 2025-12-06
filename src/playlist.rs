@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use rand::seq::index;
 
 use crate::db::{Db, SongView};
 
