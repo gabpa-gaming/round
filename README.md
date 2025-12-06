@@ -90,21 +90,6 @@ Round stores data in the following locations:
 - AAC (.aac)
 - OGG (.ogg)
 
-### Adding Features
-
-The codebase is modular and follows these patterns:
-- Each UI component is a separate `#[component]` function
-- State is managed through Dioxus Signals
-- Database operations are centralized in `db.rs`
-- Audio control is handled via async message passing
-
-### Debugging
-
-Enable verbose logging:
-```bash
-RUST_LOG=debug dx serve
-```
-
 ## License
 
 This project's code is licensed under the GNU Public License v3
