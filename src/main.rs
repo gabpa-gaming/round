@@ -21,7 +21,7 @@ pub mod create_playlist_dialog;
 use crate::{app::App};
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
-
+const ICON: Asset = asset!("/assets/icon.png");
 fn main() {
     dioxus::LaunchBuilder::new()
         .with_cfg(

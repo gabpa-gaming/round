@@ -46,40 +46,6 @@ Before compiling Round, ensure you have the following installed:
 - **Rust** (1.70 or later) - Install from [rustup.rs](https://rustup.rs/)
 - **Dioxus CLI** - Install with: `curl -sSL http://dioxus.dev/install.sh | sh`
 
-### System Dependencies (Linux)
-
-Round requires certain system libraries for desktop functionality. On **Fedora/RHEL-based systems**:
-
-```bash
-sudo dnf install gtk3-devel gdk-pixbuf2-devel cairo-devel pango-devel atk-devel
-```
-
-On **Debian/Ubuntu-based systems**:
-
-```bash
-sudo apt install libgtk-3-dev libgdk-pixbuf2.0-dev libcairo2-dev libpango1.0-dev libatk1.0-dev
-```
-
-On **Arch Linux**:
-
-```bash
-sudo pacman -S gtk3 cairo pango atk gdk-pixbuf2
-```
-
-### Audio Libraries
-Round also requires ALSA development libraries (usually pre-installed on Linux):
-
-```bash
-# Fedora/RHEL
-sudo dnf install alsa-lib-devel
-
-# Debian/Ubuntu
-sudo apt install libasound2-dev
-
-# Arch
-sudo pacman -S alsa-lib
-```
-
 ## Building from Source
 
 1. **Clone the repository** (or navigate to the project directory):
@@ -89,10 +55,10 @@ sudo pacman -S alsa-lib
 
 2. **Build the project**:
    ```bash
-   cargo build --release
+   dx bundle 
    ```
 
-   The compiled binary will be in `target/release/round`
+   (Refer to https://dioxuslabs.com/learn/0.7/tutorial/bundle/)
 
 ## Running Round
 
@@ -102,27 +68,6 @@ For development with hot-reloading:
 
 ```bash
 dx serve
-```
-
-This will:
-- Compile the application
-- Launch the app
-- Watch for file changes
-- Auto-reload on code changes
-
-### Production Binary
-
-After building with `cargo build --release`:
-
-```bash
-./target/release/round
-```
-
-Or install it system-wide:
-
-```bash
-cargo install --path .
-round
 ```
 
 ## Usage
@@ -171,17 +116,9 @@ Enable verbose logging:
 RUST_LOG=debug dx serve
 ```
 
-### Contributing
-
-When contributing:
-1. Ensure code compiles without warnings
-2. Test on Linux (primary platform)
-3. Follow existing code style
-4. Update documentation as needed
-
 ## License
 
-This project is licensed under the MIT license.
+This project's code is licensed under the GNU Public License v3
 
 ## Credits
 
@@ -190,4 +127,4 @@ Built with:
 - [Rodio](https://github.com/RustAudio/rodio) - Audio playback
 - [rusqlite](https://github.com/rusqlite/rusqlite) - SQLite bindings
 - [audiotags](https://github.com/TianyiShi2001/audiotags) - Audio metadata
-
+- [Icon](https://www.iconarchive.com/show/christmas-icons-by-samborek/speaker-icon.html) - Samborek
