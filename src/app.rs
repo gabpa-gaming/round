@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use directories::UserDirs;
 use tokio::sync::mpsc::channel;
 
-use crate::{FAVICON, MAIN_CSS, app_context::{DatabaseContext, PlayerContext}, audio_controller::AudioController, audio_controller_command::AudioControllerCommand, file_browser::file_browser, player::player_sidebar, queue_bar::queue_bar};
+use crate::{MAIN_CSS, app_context::{DatabaseContext, PlayerContext}, audio_controller::AudioController, audio_controller_command::AudioControllerCommand, file_browser::file_browser, player::player_sidebar, queue_bar::queue_bar};
 
 #[component]
 pub fn App() -> Element {
@@ -38,7 +38,6 @@ pub fn App() -> Element {
 
 
     rsx! {
-        document::Link { rel: "icon", href: FAVICON }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         div {
             class: "app-container",

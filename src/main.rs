@@ -20,6 +20,8 @@ pub mod create_playlist_dialog;
 
 use crate::{app::App};
 
+const MAIN_CSS: Asset = asset!("/assets/main.css");
+
 fn main() {
     dioxus::LaunchBuilder::new()
         .with_cfg(
@@ -27,7 +29,7 @@ fn main() {
                 .with_window(
                     dioxus::desktop::WindowBuilder::new().with_title("Round")
                 )
-                //.with_menu(None)
+                .with_menu(None)
         )
         .launch(App);
 }
