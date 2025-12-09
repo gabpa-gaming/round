@@ -112,59 +112,49 @@ h1, h2, h3, h4, h5, h6 {
 .outer-scrolling-wrapper {
     container-type: inline-size;
     width: 100%;
-    max-width: 100%; 
-    overflow-x: hidden;     
-    margin-bottom: 0rem;
+    overflow: hidden;     
     box-sizing: border-box;
+    
+    display: block;
+    text-align: left;
+
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, black 10%, black 90%, transparent 100%);
 }
 
 .inner-scrolling-container {
-    display: flex;          
-    width: max-content; 
-    gap: 1rem; 
-                 
-}
-
-.scrolling-item {
-    padding-inline: 1rem;
     white-space: nowrap; 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-inline: 30px;
+    width: max-content;
+    padding: 0 60px; 
+    
+    --center-pos: max(0px, (100cqw - 100%) / 2);
+    
+    --scroll-dist: min(0px, 100cqw - 100%);
+    
+    animation: smart-scroll 8s linear infinite alternate;
 }
 
-.smart-scrolling-container:hover  {
+.outer-scrolling-wrapper:hover .inner-scrolling-container {
     animation-play-state: paused;
 }
 
-.smart-scrolling-container {
-    /*trigger warning: css programming*/
-
-    --half-diff: calc( ((100cqw - 100%) / 2)); 
-    --is-half-diff-positive: max(0px, min(1px, var(--half-diff))); /* 1 if positive, 0 if negative */
-    /* if half diff is positive then we set output to half-diff, else 0*/ 
-    --min-translate-value: calc( 
-            var(--is-half-diff-positive) * var(--half-diff) / 1px
-        );
-
-
-    animation: smart-scroll var(--anim-length) linear infinite alternate;
-    animation-play-state: running;
-}
-
-
-
 @keyframes smart-scroll {
     0% { 
-        transform: translateX(var(--min-translate-value));
+        transform: translateX(var(--center-pos)); 
     }
-    
     100% { 
-        transform: translateX( min(var(--min-translate-value), calc(100cqw - 100%)) );
+        transform: translateX(calc(var(--center-pos) + var(--scroll-dist))); 
     }
 }
 
+.scrolling-item {
+    color: #ffffff;
+    display: inline-block;
+}
+
+.outer-scrolling-wrapper:hover .inner-scrolling-container {
+    animation-play-state: paused;
+}
 
 
 .side-fadeout {
@@ -350,21 +340,26 @@ h1, h2, h3, h4, h5, h6 {
 
 
 .slider-vert {
-    writing-mode: bt-lr; 
+    -webkit-appearance: none;
+    appearance: none;
     
-    width: 8px;    
-    height: 60px;  
+    width: 72px;   
+    height: 8px; 
+
+    transform: rotate(-90deg);
+    
+    background-color: #555555; 
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
 
     background-image: linear-gradient(
-        to top, 
+        to right, 
         #87C38A, 
         #87C38A var(--slider-progress), 
         #555555 var(--slider-progress), 
         #555555
     );
-    
-    -webkit-appearance: slider-vertical;
-    appearance: slider-vertical;
 }
 
 .queue-bar {
@@ -443,7 +438,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .left-controls {
     position: absolute;
-    left: -10px;
+    left: -34px;
     display: flex;
 }
 

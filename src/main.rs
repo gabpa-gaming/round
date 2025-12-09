@@ -1,5 +1,5 @@
 
-use dioxus::{desktop::{Config}, prelude::*};
+use dioxus::{desktop::{Config, tao::window::Icon}, prelude::*};
 
 pub mod app;
 pub mod player_playing_state;
@@ -32,4 +32,3 @@ fn main() {
         )
         .launch(App);
 }
-

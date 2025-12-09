@@ -290,7 +290,7 @@ pub fn volume_control() -> Element {
     rsx! {
         div { class: "left-controls",
             input {
-                class: "slider-vert slider",
+                class: "slider slider-vert",
                 r#type: "range",
                 style: style_str,
                 min: "0",
@@ -314,14 +314,14 @@ pub fn scrolling_text(text: String, chars_per_second: f64) -> Element {
             class: "outer-scrolling-wrapper",
             div {
                 class: "inner-scrolling-container",
-                div { class: "smart-scrolling-container",
+                
                     style: format!("--anim-length: {}s;
                                     animation-play-state: running;
-                                    animation-delay: 0s;", scroll_length),
+                                    animation-delay: 1s;", scroll_length),
                     div { class: "scrolling-item",
                         {text},
                     } 
-                },
+                
             }
         }   
     }   

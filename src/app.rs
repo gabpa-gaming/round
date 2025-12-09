@@ -36,10 +36,9 @@ pub fn App() -> Element {
 
     let _ = use_context_provider(|| DatabaseContext::new());
 
-
     rsx! {
-        document::Link { rel: "icon", href: ICON }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
+        document::Link { rel: "icon", href: ICON }
         div {
             class: "app-container",
             div {
