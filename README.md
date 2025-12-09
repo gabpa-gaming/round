@@ -30,13 +30,8 @@ Round is a desktop music player that prioritizes simplicity and functionality. I
 - **Volume Control**: Adjustable volume slider
 - **Progress Tracking**: Visual progress bar with time display
 - **Queue System**: Play next queue with fallback to folder/playlist playback
-- 
-## Prerequisites
-### Required
-- **Rust** (1.70 or later) - Install from [rustup.rs](https://rustup.rs/)
-- **Dioxus CLI** - Install with: `curl -sSL http://dioxus.dev/install.sh | sh`
 
-## Building from Source
+## Building
 
 1. **Clone the repository** (or navigate to the project directory):
    ```bash
