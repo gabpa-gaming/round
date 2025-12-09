@@ -24,4 +24,5 @@ script = []
 identifier = "com.gabpa.round"
 publisher = "gabriel zych"
 product_name = "round"
+
 icon = ["assets/icon.png"]
