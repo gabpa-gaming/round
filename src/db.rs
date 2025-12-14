@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use audiotags::{AudioTag, MimeType, Picture, Tag};
 use directories::UserDirs;
 use rodio::Source;
-use rusqlite::{Connection, OptionalExtension, Result, params};
+use rusqlite::{params, Connection, OptionalExtension, Result};
 
 use crate::errors::SongAddError;
 
@@ -27,9 +27,12 @@ impl PartialOrd for SongView {
         if self.artist == other.artist && self.album == other.album {
             self.track_number.partial_cmp(&other.track_number)
         } else {
-            Some(self.artist.cmp(&other.artist)
-                .then(self.album.cmp(&other.album))
-                .then(self.title.cmp(&other.title)))
+            Some(
+                self.artist
+                    .cmp(&other.artist)
+                    .then(self.album.cmp(&other.album))
+                    .then(self.title.cmp(&other.title)),
+            )
         }
     }
 }
@@ -46,17 +49,22 @@ pub struct SongDbEntry {
 
 impl SongDbEntry {
     pub fn to_song_view(&self, db: &Db) -> Result<SongView> {
-        let (album_name, album_art_path) = db.get_album(self.album_id as i64)?
+        let (album_name, album_art_path) = db
+            .get_album(self.album_id as i64)?
             .unwrap_or(("Unknown Album".to_string(), None));
-        
-        let artist_name = db.conn.query_row(
-            "SELECT ar.name
+
+        let artist_name = db
+            .conn
+            .query_row(
+                "SELECT ar.name
              FROM artists ar
              JOIN albums al ON ar.id = al.artist_id
              WHERE al.id = ?1",
-            params![self.album_id],
-            |row| row.get(0),
-        ).optional()?.unwrap_or("Unknown Artist".to_string());
+                params![self.album_id],
+                |row| row.get(0),
+            )
+            .optional()?
+            .unwrap_or("Unknown Artist".to_string());
 
         Ok(SongView {
             id: self.id,
@@ -90,7 +98,10 @@ impl Db {
             panic!("Could not determine user directories");
         };
 
-        let db = Db { conn: Connection::open(PathBuf::from(&cache_dir).join("music_library.db")).unwrap(), cache_path: cache_dir };
+        let db = Db {
+            conn: Connection::open(PathBuf::from(&cache_dir).join("music_library.db")).unwrap(),
+            cache_path: cache_dir,
+        };
 
         db.conn.execute("PRAGMA foreign_keys = ON;", []).unwrap();
 
@@ -98,16 +109,19 @@ impl Db {
             panic!("Failed to handle DB version change");
         }
 
-        db.conn.execute(
-            "CREATE TABLE IF NOT EXISTS artists (
+        db.conn
+            .execute(
+                "CREATE TABLE IF NOT EXISTS artists (
                 id      INTEGER PRIMARY KEY,
                 name    TEXT NOT NULL UNIQUE
             )",
-            [],
-        ).unwrap();
+                [],
+            )
+            .unwrap();
 
-        db.conn.execute(
-            "CREATE TABLE IF NOT EXISTS albums (
+        db.conn
+            .execute(
+                "CREATE TABLE IF NOT EXISTS albums (
                 id               INTEGER PRIMARY KEY,
                 name             TEXT NOT NULL,
                 artist_id        INTEGER NOT NULL,
@@ -115,11 +129,13 @@ impl Db {
                 FOREIGN KEY(artist_id) REFERENCES artists(id),
                 UNIQUE(name, artist_id)
             )",
-            [],
-        ).unwrap();
+                [],
+            )
+            .unwrap();
 
-        db.conn.execute(
-            "CREATE TABLE IF NOT EXISTS songs (
+        db.conn
+            .execute(
+                "CREATE TABLE IF NOT EXISTS songs (
                 id               INTEGER PRIMARY KEY,
                 path             TEXT NOT NULL UNIQUE,
                 title            TEXT NOT NULL,
@@ -129,20 +145,24 @@ impl Db {
                 play_count       INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY(album_id) REFERENCES albums(id)
             )",
-            [],
-        ).unwrap();
+                [],
+            )
+            .unwrap();
 
-        db.conn.execute(
-            "CREATE TABLE IF NOT EXISTS playlists (
+        db.conn
+            .execute(
+                "CREATE TABLE IF NOT EXISTS playlists (
                 id               INTEGER PRIMARY KEY,
                 name             TEXT NOT NULL,
                 cover_art_path   TEXT
             )",
-            [],
-        ).unwrap();
+                [],
+            )
+            .unwrap();
 
-        db.conn.execute(
-            "CREATE TABLE IF NOT EXISTS playlist_songs (
+        db.conn
+            .execute(
+                "CREATE TABLE IF NOT EXISTS playlist_songs (
                 playlist_id               INTEGER NOT NULL,
                 song_id                   INTEGER NOT NULL,
                 position                  INTEGER NOT NULL,
@@ -150,8 +170,9 @@ impl Db {
                 FOREIGN KEY(song_id) REFERENCES songs(id),
                 PRIMARY KEY(playlist_id, song_id)
             )",
-            [],
-        ).unwrap();
+                [],
+            )
+            .unwrap();
 
         db
     }
@@ -161,7 +182,7 @@ impl Db {
             "INSERT OR IGNORE INTO artists (name) VALUES (?1)",
             params![artist_name],
         )?;
-        
+
         self.conn.query_row(
             "SELECT id FROM artists WHERE name = ?1",
             params![artist_name],
@@ -174,21 +195,33 @@ impl Db {
         album_name: &str,
         artist_id: i32,
         cover_art_picture: Option<Picture>,
-        fallback_song_path: &str
+        fallback_song_path: &str,
     ) -> Result<i32> {
         let cover_art_path = cover_art_picture.map(|pic| {
-            let file_name = format!("cover_{}_{}.{}", artist_id, album_name, Self::get_image_extension(pic.mime_type));
-            let full_path = PathBuf::from(&self.cache_path).join(file_name).to_str().map(|s| s.to_string());
+            let file_name = format!(
+                "cover_{}_{}.{}",
+                artist_id,
+                album_name,
+                Self::get_image_extension(pic.mime_type)
+            );
+            let full_path = PathBuf::from(&self.cache_path)
+                .join(file_name)
+                .to_str()
+                .map(|s| s.to_string());
             if full_path.is_none() {
                 None
             } else {
                 let full_path = full_path.unwrap();
                 println!("Writing cover art to file: {}", full_path);
-                if std::fs::write(&full_path, pic.data).is_ok() { // Likely freezes the UI, should be done async
+                if std::fs::write(&full_path, pic.data).is_ok() {
+                    // Likely freezes the UI, should be done async
                     println!("Wrote cover art to file: {}", full_path);
                     Some(full_path)
                 } else {
-                    eprintln!("Failed to write cover art for album: {} by artist ID: {}", album_name, artist_id);
+                    eprintln!(
+                        "Failed to write cover art for album: {} by artist ID: {}",
+                        album_name, artist_id
+                    );
                     Self::get_album_art_from_folder(fallback_song_path)
                 }
             }
@@ -208,16 +241,24 @@ impl Db {
     fn get_album_art_from_folder(song_path: &str) -> Option<String> {
         let path = Path::new(song_path);
         let folder = path.parent()?;
-        
+
         let cover_names = [
-            "cover.jpg", "cover.png", "cover.jpeg",
-            "folder.jpg", "folder.png", "folder.jpeg",
-            "artwork.jpg", "artwork.png",
-            "front.jpg", "front.png",
-            "album.jpg", "album.png",
-            "Cover.jpg", "Folder.jpg", 
+            "cover.jpg",
+            "cover.png",
+            "cover.jpeg",
+            "folder.jpg",
+            "folder.png",
+            "folder.jpeg",
+            "artwork.jpg",
+            "artwork.png",
+            "front.jpg",
+            "front.png",
+            "album.jpg",
+            "album.png",
+            "Cover.jpg",
+            "Folder.jpg",
         ];
-        
+
         for name in cover_names {
             let cover_path = folder.join(name);
             if cover_path.exists() {
@@ -225,7 +266,7 @@ impl Db {
                 return Some(cover_path.to_string_lossy().to_string());
             }
         }
-        
+
         None
     }
 
@@ -239,7 +280,7 @@ impl Db {
             "INSERT OR IGNORE INTO albums (name, artist_id, cover_art_path) VALUES (?1, ?2, ?3)",
             params![album_name, artist_id, cover_art_path],
         )?;
-        
+
         self.conn.query_row(
             "SELECT id FROM albums WHERE name = ?1 AND artist_id = ?2",
             params![album_name, artist_id],
@@ -248,16 +289,13 @@ impl Db {
     }
 
     pub fn get_album(&self, album_id: i64) -> Result<Option<(String, Option<String>)>> {
-        self.conn.query_row(
-            "SELECT name, cover_art_path FROM albums WHERE id = ?1",
-            params![album_id],
-            |row| {
-                Ok((
-                    row.get(0)?,
-                    row.get(1)?,
-                ))
-            }
-        ).optional()
+        self.conn
+            .query_row(
+                "SELECT name, cover_art_path FROM albums WHERE id = ?1",
+                params![album_id],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()
     }
 
     pub fn get_image_extension(mime_type: MimeType) -> &'static str {
@@ -273,33 +311,35 @@ impl Db {
 
     pub fn add_song(&self, song: &SongDbEntry) -> Result<SongDbEntry, SongAddError> {
         print!("Adding song: {} by album ID: {}", song.title, song.album_id);
-        self.conn.execute(
-        "INSERT OR IGNORE INTO songs
+        self.conn
+            .execute(
+                "INSERT OR IGNORE INTO songs
          (path, title, album_id, track_number, duration_seconds, play_count)
-          VALUES (?1, ?2, ?3, ?4, ?5, ?6)", 
-        params![
-            song.path,
-            song.title,
-            song.album_id,
-            song.track_number,
-            song.duration_seconds, 
-            song.play_count
-        ],
-        ).unwrap();
+          VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    song.path,
+                    song.title,
+                    song.album_id,
+                    song.track_number,
+                    song.duration_seconds,
+                    song.play_count
+                ],
+            )
+            .unwrap();
         let song_id = self.conn.query_row(
             "SELECT id FROM songs WHERE path = ?1",
             params![song.path],
             |row| row.get(0),
         )?;
         Ok(SongDbEntry {
-                id: song_id,
-                path: song.path.clone(),
-                title: song.title.clone(),
-                album_id: song.album_id,
-                track_number: song.track_number,
-                duration_seconds: song.duration_seconds,
-                play_count: song.play_count
-            })
+            id: song_id,
+            path: song.path.clone(),
+            title: song.title.clone(),
+            album_id: song.album_id,
+            track_number: song.track_number,
+            duration_seconds: song.duration_seconds,
+            play_count: song.play_count,
+        })
     }
 
     pub fn add_or_get_song_by_path(&self, path: &str) -> Result<SongDbEntry, SongAddError> {
@@ -332,31 +372,38 @@ impl Db {
 
     pub fn add_song_by_path(&self, path: &str) -> Result<SongDbEntry, SongAddError> {
         let tag = Tag::new().read_from_path(path);
-    
+
         let artist = Self::try_get_album_artist_then_artist(tag.as_ref().ok());
         let artist_id = self.get_or_insert_artist_id(&artist).unwrap();
 
-        let album_name = tag.as_ref().ok()
+        let album_name = tag
+            .as_ref()
+            .ok()
             .and_then(|t| t.album().map(|a| a.title.to_string()))
             .unwrap_or_else(|| "No Album".to_string());
 
         let album_id = self.get_or_insert_album_id(
-            &album_name, 
-            artist_id, 
-            tag.as_ref().ok()
-                .and_then(|t| t.album_cover()),
-            path
+            &album_name,
+            artist_id,
+            tag.as_ref().ok().and_then(|t| t.album_cover()),
+            path,
         )?;
 
-        let title = tag.as_ref().ok()
+        let title = tag
+            .as_ref()
+            .ok()
             .and_then(|t| t.title().map(|t| t.to_string()))
-            .unwrap_or_else(|| std::path::Path::new(path)
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string());
-        
-        let track_number = tag.as_ref().ok()
+            .unwrap_or_else(|| {
+                std::path::Path::new(path)
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .to_string()
+            });
+
+        let track_number = tag
+            .as_ref()
+            .ok()
             .and_then(|t| t.track().0.map(|n| n as u16));
 
         let duration_seconds = rodio::Decoder::new(std::fs::File::open(path).unwrap())
@@ -397,11 +444,9 @@ impl Db {
     }
 
     pub fn create_playlist(&self, name: &str) -> Result<i32> {
-        self.conn.execute(
-            "INSERT INTO playlists (name) VALUES (?1)",
-            params![name],
-        )?;
-        
+        self.conn
+            .execute("INSERT INTO playlists (name) VALUES (?1)", params![name])?;
+
         self.conn.query_row(
             "SELECT id FROM playlists WHERE name = ?1",
             params![name],
@@ -410,12 +455,18 @@ impl Db {
     }
 
     pub fn add_song_to_playlist(&self, playlist_id: i32, song_id: i32) -> Result<()> {
-        print!("Adding song ID: {} to playlist ID: {}", song_id, playlist_id);
-        let next_position: i32 = self.conn.query_row(
-            "SELECT COALESCE(MAX(position), 0) + 1 FROM playlist_songs WHERE playlist_id = ?1",
-            params![playlist_id],
-            |row| row.get(0),
-        ).unwrap_or(0);
+        print!(
+            "Adding song ID: {} to playlist ID: {}",
+            song_id, playlist_id
+        );
+        let next_position: i32 = self
+            .conn
+            .query_row(
+                "SELECT COALESCE(MAX(position), 0) + 1 FROM playlist_songs WHERE playlist_id = ?1",
+                params![playlist_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
         self.conn.execute(
             "INSERT OR IGNORE INTO playlist_songs (playlist_id, song_id, position) VALUES (?1, ?2, ?3)",
             params![playlist_id, song_id, next_position],
@@ -434,22 +485,20 @@ impl Db {
              ORDER BY ps.position ASC",
         )?;
 
-        stmt.query_map(
-            params![playlist_id],
-            |row| {
-                Ok(SongView {
-            id: row.get(0)?,
-            path: row.get(1)?,
-            title: row.get(2)?,
-            artist: row.get(3)?,
-            album: row.get(4)?,
-            album_art_path: row.get(5)?,
-            track_number: row.get(6)?,
-            duration_seconds: row.get(7)?,
-            play_count: row.get(8)?,
-                })
-            },
-        ).and_then(|iter| iter.collect())
+        stmt.query_map(params![playlist_id], |row| {
+            Ok(SongView {
+                id: row.get(0)?,
+                path: row.get(1)?,
+                title: row.get(2)?,
+                artist: row.get(3)?,
+                album: row.get(4)?,
+                album_art_path: row.get(5)?,
+                track_number: row.get(6)?,
+                duration_seconds: row.get(7)?,
+                play_count: row.get(8)?,
+            })
+        })
+        .and_then(|iter| iter.collect())
     }
 
     pub fn get_nth_playlist_song(&self, playlist_id: i32, n: usize) -> Result<Option<SongView>> {
@@ -464,22 +513,20 @@ impl Db {
             LIMIT 1 OFFSET ?2"
         )?;
 
-        stmt.query_row(
-            params![playlist_id, n as i64],
-            |row| {
-                Ok(SongView {
-                    id: row.get(0)?,
-                    path: row.get(1)?,
-                    title: row.get(2)?,
-                    artist: row.get(3)?,
-                    album: row.get(4)?,
-                    album_art_path: row.get(5)?,
-                    track_number: row.get(6)?,
-                    duration_seconds: row.get(7)?,
-                    play_count: row.get(8)?,
-                })
-            }
-        ).optional()
+        stmt.query_row(params![playlist_id, n as i64], |row| {
+            Ok(SongView {
+                id: row.get(0)?,
+                path: row.get(1)?,
+                title: row.get(2)?,
+                artist: row.get(3)?,
+                album: row.get(4)?,
+                album_art_path: row.get(5)?,
+                track_number: row.get(6)?,
+                duration_seconds: row.get(7)?,
+                play_count: row.get(8)?,
+            })
+        })
+        .optional()
     }
 
     pub fn get_playlist_song_count(&self, playlist_id: i32) -> Result<usize> {
@@ -491,7 +538,9 @@ impl Db {
     }
 
     pub fn get_song_view_by_path(&self, path: &str) -> Result<SongView> {
-        if let Ok(Some(song_entry)) = self.conn.query_row(
+        if let Ok(Some(song_entry)) = self
+            .conn
+            .query_row(
                 "SELECT
                             s.id,
                             s.path,
@@ -506,21 +555,23 @@ impl Db {
                         JOIN albums al ON s.album_id = al.id
                         JOIN artists ar ON al.artist_id = ar.id
                         WHERE s.path = ?1",
-            params![path],
-            |row| {
-                Ok(SongView {
-                    id: row.get(0)?,
-                    path: row.get(1)?,
-                    title: row.get(2)?,
-                    artist: row.get(3)?,
-                    album: row.get(4)?,
-                    album_art_path: row.get(5)?,
-                    track_number: row.get(6)?,
-                    duration_seconds: row.get(7)?,
-                    play_count: row.get(8)?,
-                })
-            }
-        ).optional() { 
+                params![path],
+                |row| {
+                    Ok(SongView {
+                        id: row.get(0)?,
+                        path: row.get(1)?,
+                        title: row.get(2)?,
+                        artist: row.get(3)?,
+                        album: row.get(4)?,
+                        album_art_path: row.get(5)?,
+                        track_number: row.get(6)?,
+                        duration_seconds: row.get(7)?,
+                        play_count: row.get(8)?,
+                    })
+                },
+            )
+            .optional()
+        {
             Ok(song_entry)
         } else {
             if let Some(song) = self.add_or_get_song_by_path(path).ok() {
@@ -533,22 +584,21 @@ impl Db {
     }
 
     pub fn get_playlist_data(&self, id: i32) -> Result<(i32, String)> {
-    let mut stmt = 
-        self.conn.prepare(
+        let mut stmt = self.conn.prepare(
             "SELECT p.id, p.name
                 FROM playlists p
-                WHERE p.id = ?1")?;
+                WHERE p.id = ?1",
+        )?;
         stmt.query_row(params![id], |row| Ok((row.get(0)?, row.get(1)?)))
     }
 
     pub fn get_all_playlists(&self) -> Result<Vec<(i32, String)>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT id, name FROM playlists ORDER BY name ASC"
-        )?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT id, name FROM playlists ORDER BY name ASC")?;
 
-        stmt.query_map([], |row| {
-            Ok((row.get(0)?, row.get(1)?))
-        }).and_then(|iter| iter.collect())
+        stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .and_then(|iter| iter.collect())
     }
 
     pub fn remove_song_from_playlist(&self, playlist_id: i32, song_id: i32) -> Result<()> {
@@ -564,10 +614,8 @@ impl Db {
             "DELETE FROM playlist_songs WHERE playlist_id = ?1",
             params![playlist_id],
         )?;
-        self.conn.execute(
-            "DELETE FROM playlists WHERE id = ?1",
-            params![playlist_id],
-        )?;
+        self.conn
+            .execute("DELETE FROM playlists WHERE id = ?1", params![playlist_id])?;
         Ok(())
     }
 
@@ -580,28 +628,32 @@ impl Db {
     }
 
     pub fn handle_db_version_change(&self) -> Result<()> {
-        let user_version: i32 = self.conn.query_row(
-            "PRAGMA user_version;",
-            [],
-            |row| row.get(0),
-        )?;
+        let user_version: i32 = self
+            .conn
+            .query_row("PRAGMA user_version;", [], |row| row.get(0))?;
 
         if user_version != DB_STATE_VERSION {
-            println!("Database version mismatch. Expected: {}, Found: {}. Purging database.", DB_STATE_VERSION, user_version);
-            self.purge_db()?;
-            self.conn.pragma_update(None,"user_version", &DB_STATE_VERSION)?;
+            println!(
+                "Database version mismatch. Expected: {}, Found: {}. Purging database.",
+                DB_STATE_VERSION, user_version
+            );
+            let _ = self.purge_db();
+            self.conn
+                .pragma_update(None, "user_version", &DB_STATE_VERSION)?;
         }
 
         Ok(())
     }
 
     pub fn remove_a_song_from_db(&self, path: &str) -> Result<()> {
-        // First, get the song ID and album ID
-        let song_info: Option<(i32, i32)> = self.conn.query_row(
-            "SELECT id, album_id FROM songs WHERE path = ?1",
-            params![path],
-            |row| Ok((row.get(0)?, row.get(1)?))
-        ).optional()?;
+        let song_info: Option<(i32, i32)> = self
+            .conn
+            .query_row(
+                "SELECT id, album_id FROM songs WHERE path = ?1",
+                params![path],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .optional()?;
 
         if let Some((song_id, album_id)) = song_info {
             self.conn.execute(
@@ -609,40 +661,34 @@ impl Db {
                 params![song_id],
             )?;
 
-            self.conn.execute(
-                "DELETE FROM songs WHERE id = ?1",
-                params![song_id],
-            )?;
+            self.conn
+                .execute("DELETE FROM songs WHERE id = ?1", params![song_id])?;
 
             let album_has_songs: bool = self.conn.query_row(
                 "SELECT EXISTS(SELECT 1 FROM songs WHERE album_id = ?1)",
                 params![album_id],
-                |row| row.get(0)
+                |row| row.get(0),
             )?;
 
             if !album_has_songs {
                 let artist_id: i32 = self.conn.query_row(
                     "SELECT artist_id FROM albums WHERE id = ?1",
                     params![album_id],
-                    |row| row.get(0)
+                    |row| row.get(0),
                 )?;
 
-                self.conn.execute(
-                    "DELETE FROM albums WHERE id = ?1",
-                    params![album_id],
-                )?;
+                self.conn
+                    .execute("DELETE FROM albums WHERE id = ?1", params![album_id])?;
 
                 let artist_has_albums: bool = self.conn.query_row(
                     "SELECT EXISTS(SELECT 1 FROM albums WHERE artist_id = ?1)",
                     params![artist_id],
-                    |row| row.get(0)
+                    |row| row.get(0),
                 )?;
 
                 if !artist_has_albums {
-                    self.conn.execute(
-                        "DELETE FROM artists WHERE id = ?1",
-                        params![artist_id],
-                    )?;
+                    self.conn
+                        .execute("DELETE FROM artists WHERE id = ?1", params![artist_id])?;
                 }
             }
         }
@@ -651,11 +697,9 @@ impl Db {
     }
 
     pub fn check_db_ver(&self) -> Result<bool> {
-        let user_version: i32 = self.conn.query_row(
-            "PRAGMA user_version;",
-            [],
-            |row| row.get(0),
-        )?;
+        let user_version: i32 = self
+            .conn
+            .query_row("PRAGMA user_version;", [], |row| row.get(0))?;
 
         Ok(user_version == DB_STATE_VERSION)
     }
@@ -669,5 +713,4 @@ impl Db {
         self.conn.execute("DROP TABLE artists", [])?;
         Ok(())
     }
-
 }
